@@ -6,29 +6,26 @@
     <title>虱目魚賣貨秤重試算表</title>
     <link rel="apple-touch-icon" href="IMG_0982.jpeg">
     <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
     <meta name="apple-mobile-web-app-title" content="虱目魚試算">
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         body {
             font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", Roboto, "Noto Sans TC", sans-serif;
-            background: radial-gradient(circle at 15% 10%, #0f2942 0%, #06101e 55%, #030712 100%);
-            color: #f8fafc;
+            background: #f1f5f9;
+            color: #1e293b;
             -webkit-tap-highlight-color: transparent;
         }
-        /* 玻璃擬態卡片質感 */
-        .glass-card {
-            background: rgba(255, 255, 255, 0.04);
-            backdrop-filter: blur(16px);
-            -webkit-backdrop-filter: blur(16px);
-            border: 1px solid rgba(255, 255, 255, 0.09);
-            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.35);
+        /* 明亮高質感卡片 */
+        .clean-card {
+            background: #ffffff;
+            border: 1px solid #e2e8f0;
+            box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.05);
         }
-        .glass-panel {
-            background: rgba(15, 23, 42, 0.55);
-            border: 1px solid rgba(148, 163, 184, 0.14);
+        .clean-panel {
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
         }
-        /* 移除數字輸入框上下箭頭 */
         input[type=number]::-webkit-inner-spin-button, 
         input[type=number]::-webkit-outer-spin-button { 
             -webkit-appearance: none; 
@@ -37,289 +34,155 @@
         input[type=number] {
             -moz-appearance: textfield;
         }
-        /* 自訂捲軸 */
         ::-webkit-scrollbar {
             width: 4px;
         }
-        ::-webkit-scrollbar-track {
-            background: rgba(15, 23, 42, 0.3);
-        }
         ::-webkit-scrollbar-thumb {
-            background: rgba(148, 163, 184, 0.3);
+            background: #cbd5e1;
             border-radius: 4px;
+        }
+
+        /* 專屬 A4 列印樣式 */
+        @media print {
+            body {
+                background: #ffffff !important;
+                color: #000000 !important;
+            }
+            .no-print {
+                display: none !important;
+            }
+            .print-only {
+                display: block !important;
+            }
+            .clean-card {
+                box-shadow: none !important;
+                border: none !important;
+                padding: 0 !important;
+            }
+        }
+        .print-only {
+            display: none;
         }
     </style>
 </head>
-<body class="min-h-screen py-5 px-3.5 sm:px-6 relative overflow-x-hidden">
-    <!-- 背景裝飾光暈 -->
-    <div class="fixed -top-24 -right-24 w-72 h-72 bg-cyan-500/15 rounded-full blur-3xl pointer-events-none"></div>
-    <div class="fixed top-1/2 -left-28 w-72 h-72 bg-blue-600/15 rounded-full blur-3xl pointer-events-none"></div>
+<body class="min-h-screen py-4 px-3 sm:px-6">
 
-    <div class="max-w-md mx-auto relative z-10 space-y-3.5">
+    <div class="max-w-md mx-auto space-y-3.5">
         
-        <!-- 頂部品牌標題列 -->
-        <div class="glass-card rounded-2xl px-4 py-3.5 flex items-center justify-between">
+        <!-- 頂部品牌標題列（不列印） -->
+        <div class="clean-card rounded-2xl px-4 py-3.5 flex items-center justify-between no-print">
             <div class="flex items-center gap-3">
-                <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-cyan-400/20 to-blue-600/30 border border-cyan-400/30 flex items-center justify-center text-xl shadow-inner">
+                <div class="w-10 h-10 rounded-xl bg-blue-50 border border-blue-100 flex items-center justify-center text-xl shadow-sm">
                     🐟
                 </div>
                 <div>
-                    <h1 class="text-lg font-bold tracking-wide bg-gradient-to-r from-white via-cyan-100 to-blue-200 bg-clip-text text-transparent">
+                    <h1 class="text-base font-bold text-slate-900 tracking-wide">
                         虱目魚賣貨試算
                     </h1>
-                    <p class="text-[11px] text-slate-400 tracking-wide">扣桶10斤・扣桶後滿百再扣5斤</p>
+                    <p class="text-[11px] text-slate-500">明亮高質感版・扣桶10斤/滿百扣5斤</p>
                 </div>
             </div>
-            <button onclick="resetAll()" class="text-xs font-medium text-slate-300 hover:text-white bg-white/5 hover:bg-white/10 active:bg-white/15 px-3 py-1.5 rounded-xl border border-white/10 transition">
+            <button onclick="resetAll()" class="text-xs font-medium text-rose-600 hover:text-rose-700 bg-rose-50 hover:bg-rose-100 px-3 py-1.5 rounded-xl border border-rose-200 transition">
                 清空重算
             </button>
         </div>
 
-        <!-- 單桶毛重輸入區 -->
-        <div class="glass-card rounded-2xl p-4 relative overflow-hidden">
-            <div class="absolute inset-x-0 top-0 h-[1px] bg-gradient-to-r from-transparent via-cyan-400/50 to-transparent"></div>
-            <div class="flex justify-between items-center mb-2.5">
-                <label for="weightInput" class="text-sm font-semibold text-slate-200 flex items-center gap-1.5">
+        <!-- 備註與匯出設定區（不列印） -->
+        <div class="clean-card rounded-2xl p-4 space-y-3 no-print">
+            <div class="text-xs font-bold text-slate-700 uppercase tracking-wider flex items-center gap-1.5">
+                <span>📝</span> 對帳單備註設定
+            </div>
+            <div class="grid grid-cols-1 gap-2.5">
+                <div>
+                    <label class="block text-[11px] font-semibold text-slate-600 mb-1">日期</label>
+                    <input type="date" id="printDate" class="w-full text-sm font-medium px-3 py-2 rounded-xl bg-slate-50 border border-slate-200 text-slate-800 focus:outline-none focus:border-blue-500">
+                </div>
+                <div class="grid grid-cols-2 gap-2">
+                    <div>
+                        <label class="block text-[11px] font-semibold text-slate-600 mb-1">魚塭名稱</label>
+                        <input type="text" id="pondName" placeholder="例如: A區大池" class="w-full text-sm font-medium px-3 py-2 rounded-xl bg-slate-50 border border-slate-200 text-slate-800 focus:outline-none focus:border-blue-500">
+                    </div>
+                    <div>
+                        <label class="block text-[11px] font-semibold text-slate-600 mb-1">魚販 / 買家</label>
+                        <input type="text" id="buyerName" placeholder="例如: 陳老闆" class="w-full text-sm font-medium px-3 py-2 rounded-xl bg-slate-50 border border-slate-200 text-slate-800 focus:outline-none focus:border-blue-500">
+                    </div>
+                </div>
+            </div>
+            <button onclick="openPrintPreview()" class="w-full py-2.5 bg-slate-900 hover:bg-slate-800 active:bg-black text-white font-bold text-sm rounded-xl shadow-md transition flex items-center justify-center gap-2">
+                <span>🖨️</span> 預覽並匯出 A4 對帳單報表
+            </button>
+        </div>
+
+        <!-- 單桶毛重輸入區（不列印） -->
+        <div class="clean-card rounded-2xl p-4 no-print">
+            <div class="flex justify-between items-center mb-2">
+                <label for="weightInput" class="text-sm font-bold text-slate-800 flex items-center gap-1.5">
                     <span>第</span>
-                    <span id="nextBucketNum" class="inline-flex items-center justify-center px-2 py-0.5 text-base font-black text-cyan-300 bg-cyan-500/15 border border-cyan-400/30 rounded-lg">1</span>
+                    <span id="nextBucketNum" class="inline-flex items-center justify-center px-2 py-0.5 text-base font-black text-blue-600 bg-blue-50 border border-blue-200 rounded-lg">1</span>
                     <span>桶毛重（台斤）</span>
                 </label>
-                <span class="text-[11px] text-cyan-300/80 bg-cyan-950/60 border border-cyan-500/20 px-2 py-0.5 rounded-md">
+                <span class="text-[11px] text-blue-700 bg-blue-50 border border-blue-200 px-2 py-0.5 rounded-md font-medium">
                     每筆自動 -10 斤
                 </span>
             </div>
             <div class="flex items-stretch gap-2.5 w-full">
                 <input type="number" id="weightInput" inputmode="decimal" step="0.1" min="0" placeholder="輸入台斤數..." 
-                    class="flex-1 min-w-0 w-full text-xl font-bold px-3.5 py-2.5 rounded-xl bg-slate-950/70 border border-slate-700/80 text-white placeholder-slate-500 focus:outline-none focus:border-cyan-400 focus:ring-1 focus:ring-cyan-400/50 transition"
+                    class="flex-1 min-w-0 w-full text-xl font-bold px-3.5 py-2.5 rounded-xl bg-slate-50 border border-slate-300 text-slate-900 placeholder-slate-400 focus:outline-none focus:border-blue-600 transition"
                     onkeypress="handleKeyPress(event)">
-                <button onclick="addBucket()" class="shrink-0 px-5 py-2.5 bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 active:scale-95 text-white font-bold text-base rounded-xl shadow-lg shadow-cyan-500/20 transition">
+                <button onclick="addBucket()" class="shrink-0 px-5 py-2.5 bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white font-bold text-base rounded-xl shadow-md transition">
                     輸入
                 </button>
             </div>
         </div>
 
-        <!-- 數據總覽四格儀表板 -->
-        <div class="grid grid-cols-2 gap-2.5">
-            <div class="glass-panel rounded-xl p-3">
-                <div class="text-[11px] text-slate-400 font-medium">總桶數</div>
-                <div class="text-xl font-extrabold text-white mt-0.5 tabular-nums">
-                    <span id="totalBuckets">0</span> <span class="text-xs font-normal text-slate-400">桶</span>
+        <!-- 數據總覽四格儀表板（不列印） -->
+        <div class="grid grid-cols-2 gap-2.5 no-print">
+            <div class="clean-panel rounded-xl p-3">
+                <div class="text-[11px] text-slate-500 font-medium">總桶數</div>
+                <div class="text-xl font-extrabold text-slate-900 mt-0.5 tabular-nums">
+                    <span id="totalBuckets">0</span> <span class="text-xs font-normal text-slate-500">桶</span>
                 </div>
             </div>
-            <div class="glass-panel rounded-xl p-3">
-                <div class="text-[11px] text-slate-400 font-medium">未扣重總毛重</div>
-                <div class="text-xl font-extrabold text-white mt-0.5 tabular-nums">
-                    <span id="totalGross">0</span> <span class="text-xs font-normal text-slate-400">斤</span>
+            <div class="clean-panel rounded-xl p-3">
+                <div class="text-[11px] text-slate-500 font-medium">未扣重總毛重</div>
+                <div class="text-xl font-extrabold text-slate-900 mt-0.5 tabular-nums">
+                    <span id="totalGross">0</span> <span class="text-xs font-normal text-slate-500">斤</span>
                 </div>
             </div>
-            <div class="glass-panel rounded-xl p-3 border-amber-500/20 bg-amber-950/15">
-                <div class="text-[11px] text-amber-300/80 font-medium">扣桶重後淨重</div>
-                <div class="text-xl font-extrabold text-amber-300 mt-0.5 tabular-nums">
-                    <span id="netAfterBucket">0</span> <span class="text-xs font-normal text-amber-400/70">斤</span>
+            <div class="clean-panel rounded-xl p-3 border-amber-200 bg-amber-50/50">
+                <div class="text-[11px] text-amber-800 font-medium">扣桶重後淨重</div>
+                <div class="text-xl font-extrabold text-amber-900 mt-0.5 tabular-nums">
+                    <span id="netAfterBucket">0</span> <span class="text-xs font-normal text-amber-700">斤</span>
                 </div>
             </div>
-            <div class="glass-panel rounded-xl p-3 border-rose-500/20 bg-rose-950/15">
-                <div class="text-[11px] text-rose-300/80 font-medium">滿百扣水重 (-5斤/百)</div>
-                <div class="text-xl font-extrabold text-rose-400 mt-0.5 tabular-nums">
-                    -<span id="waterDeduction">0</span> <span class="text-xs font-normal text-rose-400/70">斤</span>
+            <div class="clean-panel rounded-xl p-3 border-rose-200 bg-rose-50/50">
+                <div class="text-[11px] text-rose-800 font-medium">滿百扣水重 (-5斤/百)</div>
+                <div class="text-xl font-extrabold text-rose-700 mt-0.5 tabular-nums">
+                    -<span id="waterDeduction">0</span> <span class="text-xs font-normal text-rose-600">斤</span>
                 </div>
             </div>
         </div>
 
-        <!-- 最終實算總台斤（翡翠微光主視覺卡） -->
-        <div class="rounded-2xl p-4 bg-gradient-to-br from-emerald-500/20 via-teal-600/15 to-slate-900/80 border border-emerald-400/35 shadow-lg shadow-emerald-950/40 flex items-center justify-between relative overflow-hidden">
-            <div class="absolute -right-6 -bottom-6 w-24 h-24 bg-emerald-400/15 rounded-full blur-xl pointer-events-none"></div>
+        <!-- 最終實算總台斤（不列印） -->
+        <div class="clean-card rounded-2xl p-4 bg-gradient-to-r from-emerald-600 to-teal-600 text-white shadow-md flex items-center justify-between no-print">
             <div>
-                <div class="text-emerald-300 text-sm font-bold tracking-wide">最終實算總台斤</div>
-                <div class="text-[11px] text-emerald-200/60 mt-0.5">已扣除桶重與滿百水重</div>
+                <div class="text-emerald-100 text-sm font-bold tracking-wide">最終實算總台斤</div>
+                <div class="text-[11px] text-emerald-200/90 mt-0.5">已扣除桶重與滿百水重</div>
             </div>
-            <div class="text-3xl font-black tracking-tight text-white tabular-nums">
-                <span id="finalWeight" class="bg-gradient-to-b from-white to-emerald-200 bg-clip-text text-transparent">0</span>
-                <span class="text-sm font-medium text-emerald-300 ml-0.5">斤</span>
+            <div class="text-3xl font-black tracking-tight tabular-nums text-white">
+                <span id="finalWeight">0</span> <span class="text-sm font-medium text-emerald-100 ml-0.5">斤</span>
             </div>
         </div>
 
-        <!-- 單價與總金額試算（鎏金質感卡片） -->
-        <div class="glass-card rounded-2xl p-4 border-amber-400/25 bg-gradient-to-br from-amber-500/10 via-slate-900/40 to-slate-900/60 space-y-3">
+        <!-- 單價與總金額試算（不列印） -->
+        <div class="clean-card rounded-2xl p-4 border-amber-300 bg-amber-50/30 space-y-3 no-print">
             <div class="flex items-center justify-between gap-3">
-                <label for="priceInput" class="text-sm font-semibold text-amber-200/90 whitespace-nowrap flex items-center gap-1.5">
+                <label for="priceInput" class="text-sm font-semibold text-slate-800 whitespace-nowrap flex items-center gap-1.5">
                     <span>💰</span> 每台斤單價（元）
                 </label>
                 <input type="number" id="priceInput" inputmode="decimal" step="0.1" min="0" placeholder="輸入單價" 
                     oninput="updateUI()"
-                    class="w-32 text-right text-lg font-bold px-3 py-1.5 rounded-xl bg-slate-950/70 border border-amber-400/30 text-amber-200 placeholder-slate-500 focus:outline-none focus:border-amber-400 transition tabular-nums">
+                    class="w-32 text-right text-lg font-bold px-3 py-1.5 rounded-xl bg-white border border-amber-300 text-slate-900 placeholder-slate-400 focus:outline-none focus:border-amber-500 transition tabular-nums">
             </div>
-            <div class="pt-2.5 border-t border-white/10 flex items-baseline justify-between">
-                <span class="text-xs font-semibold text-slate-300 tracking-wide">預估總金額</span>
-                <div class="text-2xl font-black tracking-tight tabular-nums">
-                    <span class="text-xs font-bold text-amber-400 mr-1">NT$</span><span id="totalPrice" class="bg-gradient-to-r from-amber-200 via-yellow-300 to-amber-400 bg-clip-text text-transparent">0</span>
-                </div>
-            </div>
-        </div>
-
-        <!-- 各桶重量明細列表 -->
-        <div class="glass-card rounded-2xl p-3.5">
-            <div class="flex justify-between items-center mb-2.5 px-1">
-                <h3 class="text-xs font-bold text-slate-300 tracking-wider">📋 各桶重量明細（最新在最上）</h3>
-                <span class="text-[11px] text-slate-500">可修改或刪除</span>
-            </div>
-            <div class="rounded-xl overflow-hidden border border-white/10 max-h-56 overflow-y-auto bg-slate-950/40">
-                <table class="min-w-full divide-y divide-white/10 text-sm">
-                    <thead class="bg-slate-900/90 sticky top-0 backdrop-blur-md">
-                        <tr>
-                            <th class="px-3 py-2 text-left text-[11px] font-semibold text-slate-400">桶號</th>
-                            <th class="px-3 py-2 text-right text-[11px] font-semibold text-slate-400">毛重</th>
-                            <th class="px-3 py-2 text-right text-[11px] font-semibold text-slate-400">扣桶(-10)</th>
-                            <th class="px-3 py-2 text-center text-[11px] font-semibold text-slate-400">操作</th>
-                        </tr>
-                    </thead>
-                    <tbody id="bucketList" class="divide-y divide-white/5">
-                        <tr>
-                            <td colspan="4" class="px-4 py-6 text-center text-xs text-slate-500">尚未輸入資料，請在上方輸入第一桶毛重</td>
-                        </tr>
-                    </tbody>
-                </table>
-            </div>
-        </div>
-
-    </div>
-
-    <script>
-        let buckets = [];
-        const BUCKET_TARE = 10; // 每桶固定扣 10 斤
-
-        window.onload = function() {
-            document.getElementById('weightInput').focus();
-        };
-
-        function handleKeyPress(event) {
-            if (event.key === 'Enter') {
-                event.preventDefault();
-                addBucket();
-            }
-        }
-
-        function addBucket() {
-            const input = document.getElementById('weightInput');
-            const val = parseFloat(input.value);
-
-            if (isNaN(val) || val <= 0) {
-                alert('請輸入大於 0 的有效台斤數！');
-                input.focus();
-                return;
-            }
-
-            if (val <= BUCKET_TARE) {
-                if (!confirm(`輸入的重量（${val} 斤）小於或等於桶重（${BUCKET_TARE} 斤），確定要加入嗎？`)) {
-                    input.focus();
-                    return;
-                }
-            }
-
-            buckets.push(val);
-            input.value = '';
-            input.focus();
-            updateUI();
-        }
-
-        function editBucket(index) {
-            const currentVal = buckets[index];
-            const newValStr = prompt(`修改第 ${index + 1} 桶的毛重（台斤）：`, currentVal);
-            if (newValStr === null) return;
-            const newVal = parseFloat(newValStr);
-            if (isNaN(newVal) || newVal <= 0) {
-                alert('請輸入有效的數字！');
-                return;
-            }
-            buckets[index] = newVal;
-            updateUI();
-        }
-
-        function deleteBucket(index) {
-            if (confirm(`確定要刪除第 ${index + 1} 桶（${buckets[index]} 斤）的紀錄嗎？`)) {
-                buckets.splice(index, 1);
-                updateUI();
-            }
-        }
-
-        function resetAll() {
-            if (buckets.length === 0 && !document.getElementById('priceInput').value) return;
-            if (confirm('確定要清空所有紀錄與單價重新計算嗎？')) {
-                buckets = [];
-                document.getElementById('priceInput').value = '';
-                document.getElementById('weightInput').value = '';
-                updateUI();
-                document.getElementById('weightInput').focus();
-            }
-        }
-
-        function formatNum(num) {
-            return Math.round(num * 100) / 100;
-        }
-
-        function updateUI() {
-            const count = buckets.length;
-            document.getElementById('nextBucketNum').textContent = count + 1;
-            document.getElementById('totalBuckets').textContent = count;
-
-            let totalGross = 0;
-            let netAfterBucket = 0;
-
-            buckets.forEach(w => {
-                totalGross += w;
-                netAfterBucket += (w - BUCKET_TARE);
-            });
-
-            totalGross = formatNum(totalGross);
-            netAfterBucket = formatNum(netAfterBucket);
-
-            // 扣桶重後的數字，滿整百才扣 5 斤水重（不足百斤不扣）
-            let waterDeduction = 0;
-            if (netAfterBucket >= 100) {
-                waterDeduction = Math.floor(netAfterBucket / 100) * 5;
-            }
-            waterDeduction = formatNum(waterDeduction);
-
-            const finalWeight = formatNum(netAfterBucket - waterDeduction);
-
-            // 計算總金額
-            const unitPrice = parseFloat(document.getElementById('priceInput').value);
-            let totalPrice = 0;
-            if (!isNaN(unitPrice) && unitPrice > 0 && finalWeight > 0) {
-                totalPrice = Math.round(finalWeight * unitPrice);
-            }
-
-            document.getElementById('totalGross').textContent = totalGross;
-            document.getElementById('netAfterBucket').textContent = netAfterBucket;
-            document.getElementById('waterDeduction').textContent = waterDeduction;
-            document.getElementById('finalWeight').textContent = finalWeight;
-            document.getElementById('totalPrice').textContent = totalPrice.toLocaleString('zh-TW');
-
-            // 更新明細表格
-            const tbody = document.getElementById('bucketList');
-            if (count === 0) {
-                tbody.innerHTML = '<tr><td colspan="4" class="px-4 py-6 text-center text-xs text-slate-500">尚未輸入資料，請在上方輸入第一桶毛重</td></tr>';
-                return;
-            }
-
-            let rowsHTML = '';
-            for (let i = count - 1; i >= 0; i--) {
-                const gross = formatNum(buckets[i]);
-                const net = formatNum(buckets[i] - BUCKET_TARE);
-                rowsHTML += `
-                    <tr class="hover:bg-white/5 transition tabular-nums">
-                        <td class="px-3 py-2.5 font-semibold text-slate-300 text-xs">第 ${i + 1} 桶</td>
-                        <td class="px-3 py-2.5 text-right text-slate-300">${gross}</td>
-                        <td class="px-3 py-2.5 text-right font-bold text-amber-300">${net}</td>
-                        <td class="px-3 py-2.5 text-center space-x-1.5">
-                            <button onclick="editBucket(${i})" class="text-cyan-300 hover:text-cyan-200 text-xs font-medium px-2 py-0.5 rounded bg-cyan-500/15 border border-cyan-400/20">改</button>
-                            <button onclick="deleteBucket(${i})" class="text-rose-300 hover:text-rose-200 text-xs font-medium px-2 py-0.5 rounded bg-rose-500/15 border border-rose-400/20">刪</button>
-                        </td>
-                    </tr>
-                `;
-            }
-            tbody.innerHTML = rowsHTML;
-        }
-    </script>
-</body>
-</html>
+            <div class="pt-2.5 border-t border-amber-200/60 flex items-baseline justify-between">
+                <span class="text-xs font-semibold text-slate-70
