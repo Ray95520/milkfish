@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>虱目魚賣貨秤重試算表</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans TC", sans-serif;
+            background-color: #f3f4f6;
+        }
+        /* 移除數字輸入框的上下箭頭 */
+        input[type=number]::-webkit-inner-spin-button, 
+        input[type=number]::-webkit-outer-spin-button { 
+            -webkit-appearance: none; 
+            margin: 0; 
+        }
+        input[type=number] {
+            -moz-appearance: textfield;
+        }
+    </style>
+</head>
+<body class="min-h-screen py-6 px-4 sm:px-6 lg:px-8">
+    <div class="max-w-xl mx-auto">
+        <!-- 標題區 -->
+        <div class="bg-blue-900 text-white rounded-t-2xl p-6 shadow-md">
+            <h1 class="text-2xl font-bold tracking-wide text-center">🐟 虱目魚賣貨秤重試算</h1>
+            <p class="text-blue-200 text-sm text-center mt-1">自動扣除桶重（10斤/桶）與水重（每百斤扣5斤）</p>
+        </div>
+
+        <!-- 主體內容區 -->
+        <div class="bg-white rounded-b-2xl shadow-md p-6">
+            
+            <!-- 初始狀態：開始試算按鈕 -->
+            <div id="startSection" class="text-center py-8">
+                <p class="text-gray-600 mb-6 text-base">準備好手邊的秤重單了嗎？點擊下方按鈕即可開始逐桶輸入。</p>
+                <button onclick="startCalculation()" class="w-full sm:w-auto px-8 py-4 bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white font-bold text-xl rounded-xl shadow-lg transition transform hover:-translate-y-0.5">
+                    ▶ 開始試算
+                </button>
+            </div>
+
+            <!-- 試算進行中區塊（預設隱藏） -->
+            <div id="calcSection" class="hidden space-y-6">
+                
+                <!-- 輸入區 -->
+                <div class="bg-blue-50 border-2 border-blue-200 rounded-xl p-4">
+                    <label for="weightInput" class="block text-base font-bold text-blue-900 mb-2">
+                        第 <span id="nextBucketNum" class="text-xl text-blue-600">1</span> 桶毛重（台斤）：
+                    </label>
+                    <div class="flex gap-2">
+                        <input type="number" id="weightInput" step="0.1" min="0" placeholder="輸入台斤數..." 
+                            class="flex-1 text-2xl font-bold px-4 py-3 border-2 border-blue-300 rounded-xl focus:outline-none focus:border-blue-600 bg-white text-gray-900"
+                            onkeypress="handleKeyPress(event)">
+                        <button onclick="addBucket()" class="px-6 py-3 bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white font-bold text-lg rounded-xl shadow transition whitespace-nowrap">
+                            輸入
+                        </button>
+                    </div>
+                    <p class="text-xs text-gray-500 mt-2">提示：輸入數字後可直接按鍵盤「Enter」鍵快速新增下一桶</p>
+                </div>
+
+                <!-- 總結數據看板 -->
+                <div class="grid grid-cols-2 gap-3">
+                    <div class="bg-gray-50 p-3.5 rounded-xl border border-gray-200">
+                        <div class="text-xs text-gray-500 font-medium">總桶數</div>
+                        <div class="text-2xl font-bold text-gray-800 mt-0.5"><span id="totalBuckets">0</span> <span class="text-sm font-normal">桶</span></div>
+                    </div>
+                    <div class="bg-gray-50 p-3.5 rounded-xl border border-gray-200">
+                        <div class="text-xs text-gray-500 font-medium">未扣重總毛重</div>
+                        <div class="text-2xl font-bold text-gray-800 mt-0.5"><span id="totalGross">0</span> <span class="text-sm font-normal">斤</span></div>
+                    </div>
+                    <div class="bg-amber-50 p-3.5 rounded-xl border border-amber-200">
+                        <div class="text-xs text-amber-800 font-medium">扣桶重後淨重 (-10斤/桶)</div>
+                        <div class="text-2xl font-bold text-amber-900 mt-0.5"><span id="netAfterBucket">0</span> <span class="text-sm font-normal">斤</span></div>
+                    </div>
+                    <div class="bg-red-50 p-3.5 rounded-xl border border-red-200">
+                        <div class="text-xs text-red-700 font-medium">扣除水重 (-5斤/百斤)</div>
+                        <div class="text-2xl font-bold text-red-700 mt-0.5">-<span id="waterDeduction">0</span> <span class="text-sm font-normal">斤</span></div>
+                    </div>
+                </div>
+
+                <!-- 最終實算台斤（最醒目） -->
+                <div class="bg-emerald-600 text-white p-5 rounded-xl shadow-md flex items-center justify-between">
+                    <div>
+                        <div class="text-emerald-100 text-sm font-medium">最終實算總台斤</div>
+                        <div class="text-xs text-emerald-200 mt-0.5">已扣除所有桶重與水重</div>
+                    </div>
+                    <div class="text-4xl font-extrabold tracking-tight">
+                        <span id="finalWeight">0</span> <span class="text-lg font-normal">斤</span>
+                    </div>
+                </div>
+
+                <!-- 扣水重方式切換 & 操作按鈕 -->
+                <div class="flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-gray-200 text-sm">
+                    <div class="flex items-center gap-2">
+                        <label for="waterMode" class="text-gray-600 font-medium">扣水方式：</label>
+                        <select id="waterMode" onchange="recalculate()" class="border border-gray-300 rounded-lg px-2.5 py-1.5 bg-white text-gray-700 focus:outline-none focus:border-blue-500">
+                            <option value="proportional">按比例扣 5%（每百斤扣5斤）</option>
+                            <option value="floor">滿整百才扣 5 斤（不足百斤不扣）</option>
+                        </select>
+                    </div>
+                    <button onclick="resetAll()" class="text-red-600 hover:text-red-800 font-medium px-3 py-1.5 rounded-lg hover:bg-red-50 transition">
+                        🗑️ 全部清空重算
+                    </button>
+                </div>
+
+                <!-- 單桶明細列表 -->
+                <div>
+                    <h3 class="text-sm font-bold text-gray-700 mb-2 flex justify-between items-center">
+                        <span>📋 各桶重量明細</span>
+                        <span class="text-xs font-normal text-gray-400">可隨時修改或刪除單筆</span>
+                    </h3>
+                    <div class="border border-gray-200 rounded-xl overflow-hidden max-h-72 overflow-y-auto">
+                        <table class="min-w-full divide-y divide-gray-200 text-sm">
+                            <thead class="bg-gray-100 sticky top-0">
+                                <tr>
+                                    <th class="px-3 py-2 text-left font-semibold text-gray-600">桶號</th>
+                                    <th class="px-3 py-2 text-right font-semibold text-gray-600">毛重(斤)</th>
+                                    <th class="px-3 py-2 text-right font-semibold text-gray-600">扣桶重(-10)</th>
+                                    <th class="px-3 py-2 text-center font-semibold text-gray-600">操作</th>
+                                </tr>
+                            </thead>
+                            <tbody id="bucketList" class="divide-y divide-gray-200 bg-white">
+                                <tr>
+                                    <td colspan="4" class="px-4 py-6 text-center text-gray-400">尚未輸入任何資料</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let buckets = [];
+        const BUCKET_TARE = 10; // 每桶固定扣 10 斤
+
+        function startCalculation() {
+            document.getElementById('startSection').classList.add('hidden');
+            document.getElementById('calcSection').classList.remove('hidden');
+            document.getElementById('weightInput').focus();
+        }
+
+        function handleKeyPress(event) {
+            if (event.key === 'Enter') {
+                event.preventDefault();
+                addBucket();
+            }
+        }
+
+        function addBucket() {
+            const input = document.getElementById('weightInput');
+            const val = parseFloat(input.value);
+
+            if (isNaN(val) || val <= 0) {
+                alert('請輸入大於 0 的有效台斤數！');
+                input.focus();
+                return;
+            }
+
+            if (val <= BUCKET_TARE) {
+                if (!confirm(`輸入的重量（${val} 斤）小於或等於桶重（${BUCKET_TARE} 斤），確定要加入嗎？`)) {
+                    input.focus();
+                    return;
+                }
+            }
+
+            buckets.push(val);
+            input.value = '';
+            input.focus();
+            updateUI();
+        }
+
+        function editBucket(index) {
+            const currentVal = buckets[index];
+            const newValStr = prompt(`修改第 ${index + 1} 桶的毛重（台斤）：`, currentVal);
+            if (newValStr === null) return; // 取消
+            const newVal = parseFloat(newValStr);
+            if (isNaN(newVal) || newVal <= 0) {
+                alert('請輸入有效的數字！');
+                return;
+            }
+            buckets[index] = newVal;
+            updateUI();
+        }
+
+        function deleteBucket(index) {
+            if (confirm(`確定要刪除第 ${index + 1} 桶（${buckets[index]} 斤）的紀錄嗎？`)) {
+                buckets.splice(index, 1);
+                updateUI();
+            }
+        }
+
+        function resetAll() {
+            if (buckets.length === 0) return;
+            if (confirm('確定要清空所有已輸入的紀錄重新計算嗎？')) {
+                buckets = [];
+                updateUI();
+                document.getElementById('weightInput').focus();
+            }
+        }
+
+        function recalculate() {
+            updateUI();
+        }
+
+        function formatNum(num) {
+            // 避免浮點數誤差，最多保留兩位小數並去除多餘的 0
+            return Math.round(num * 100) / 100;
+        }
+
+        function updateUI() {
+            const count = buckets.length;
+            document.getElementById('nextBucketNum').textContent = count + 1;
+            document.getElementById('totalBuckets').textContent = count;
+
+            let totalGross = 0;
+            let netAfterBucket = 0;
+
+            buckets.forEach(w => {
+                totalGross += w;
+                netAfterBucket += (w - BUCKET_TARE);
+            });
+
+            totalGross = formatNum(totalGross);
+            netAfterBucket = formatNum(netAfterBucket);
+
+            // 計算水重扣除
+            const waterMode = document.getElementById('waterMode').value;
+            let waterDeduction = 0;
+            if (netAfterBucket > 0) {
+                if (waterMode === 'proportional') {
+                    // 按比例每百斤扣 5 斤 (即 5%)
+                    waterDeduction = netAfterBucket * 0.05;
+                } else {
+                    // 滿整百才扣 5 斤
+                    waterDeduction = Math.floor(netAfterBucket / 100) * 5;
+                }
+            }
+            waterDeduction = formatNum(waterDeduction);
+            const finalWeight = formatNum(netAfterBucket - waterDeduction);
+
+            document.getElementById('totalGross').textContent = totalGross;
+            document.getElementById('netAfterBucket').textContent = netAfterBucket;
+            document.getElementById('waterDeduction').textContent = waterDeduction;
+            document.getElementById('finalWeight').textContent = finalWeight;
+
+            // 更新明細表格
+            const tbody = document.getElementById('bucketList');
+            if (count === 0) {
+                tbody.innerHTML = '<tr><td colspan="4" class="px-4 py-6 text-center text-gray-400">尚未輸入任何資料</td></tr>';
+                return;
+            }
+
+            let rowsHTML = '';
+            // 倒序顯示，最新輸入的在最上面方便核對
+            for (let i = count - 1; i >= 0; i--) {
+                const gross = formatNum(buckets[i]);
+                const net = formatNum(buckets[i] - BUCKET_TARE);
+                rowsHTML += `
+                    <tr class="hover:bg-gray-50">
+                        <td class="px-3 py-2.5 font-medium text-gray-900">第 ${i + 1} 桶</td>
+                        <td class="px-3 py-2.5 text-right text-gray-700">${gross}</td>
+                        <td class="px-3 py-2.5 text-right font-semibold text-amber-800">${net}</td>
+                        <td class="px-3 py-2.5 text-center space-x-2">
+                            <button onclick="editBucket(${i})" class="text-blue-600 hover:underline text-xs font-medium">修改</button>
+                            <button onclick="deleteBucket(${i})" class="text-red-600 hover:underline text-xs font-medium">刪除</button>
+                        </td>
+                    </tr>
+                `;
+            }
+            tbody.innerHTML = rowsHTML;
+        }
+    </script>
+</body>
+</html>
