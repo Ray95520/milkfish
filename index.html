@@ -269,4 +269,51 @@
             const finalWeight = formatNum(netAfterBucket * 0.95);
             const waterDeduction = formatNum(netAfterBucket - finalWeight);
 
-            const priceInputEl = document
+            const priceInputEl = document.getElementById('priceInput');
+            const unitPrice = priceInputEl ? parseFloat(priceInputEl.value) : 0;
+            let totalPrice = 0;
+            if (!isNaN(unitPrice) && unitPrice > 0 && finalWeight > 0) {
+                totalPrice = Math.round(finalWeight * unitPrice);
+            }
+
+            const tgEl = document.getElementById('totalGross');
+            const nabEl = document.getElementById('netAfterBucket');
+            const wdEl = document.getElementById('waterDeduction');
+            const fwEl = document.getElementById('finalWeight');
+            const tpEl = document.getElementById('totalPrice');
+
+            if (tgEl) tgEl.textContent = totalGross;
+            if (nabEl) nabEl.textContent = netAfterBucket;
+            if (wdEl) wdEl.textContent = waterDeduction;
+            if (fwEl) fwEl.textContent = finalWeight;
+            if (tpEl) tpEl.textContent = totalPrice.toLocaleString('zh-TW');
+
+            // 更新操作介面明細表格（最新在最上）
+            const tbody = document.getElementById('bucketList');
+            if (tbody) {
+                if (count === 0) {
+                    tbody.innerHTML = '<tr><td colspan="4" class="px-4 py-6 text-center text-xs text-slate-500">尚未輸入資料，請在上方輸入第一桶毛重</td></tr>';
+                } else {
+                    let rowsHTML = '';
+                    for (let i = count - 1; i >= 0; i--) {
+                        const gross = formatNum(buckets[i]);
+                        const net = formatNum(buckets[i] - BUCKET_TARE);
+                        rowsHTML += `
+                            <tr class="hover:bg-white/5 transition tabular-nums">
+                                <td class="px-3 py-2.5 font-semibold text-slate-300 text-xs">第 ${i + 1} 桶</td>
+                                <td class="px-3 py-2.5 text-right text-slate-300">${gross}</td>
+                                <td class="px-3 py-2.5 text-right font-bold text-amber-300">${net}</td>
+                                <td class="px-3 py-2.5 text-center space-x-1.5">
+                                    <button onclick="editBucket(${i})" class="text-cyan-300 hover:text-cyan-200 text-xs font-medium px-2 py-0.5 rounded bg-cyan-500/15 border border-cyan-400/20">改</button>
+                                    <button onclick="deleteBucket(${i})" class="text-rose-300 hover:text-rose-200 text-xs font-medium px-2 py-0.5 rounded bg-rose-500/15 border border-rose-400/20">刪</button>
+                                </td>
+                            </tr>
+                        `;
+                    }
+                    tbody.innerHTML = rowsHTML;
+                }
+            }
+        }
+    </script>
+</body>
+</html>
