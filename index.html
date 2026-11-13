@@ -16,6 +16,7 @@
             color: #f1f5f9;
             -webkit-tap-highlight-color: transparent;
         }
+        /* 中度深色・高級玻璃擬態漸層卡片 */
         .glass-card {
             background: rgba(30, 41, 59, 0.7);
             backdrop-filter: blur(16px);
@@ -180,7 +181,7 @@
             </div>
             <!-- 匯出製作對帳單按鈕 -->
             <button onclick="openPrintPreview()" class="w-full py-3 bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-white font-bold text-sm rounded-xl shadow-lg shadow-cyan-500/20 transition flex items-center justify-center gap-2">
-                <span>📋</span> 匯出製作對帳單 (複製對帳文字)
+                <span>🖨️</span> 匯出製作對帳單 (A4 格式)
             </button>
         </div>
 
@@ -492,50 +493,7 @@
                 return;
             }
             updateUI();
-
-            // 嘗試呼叫列印
-            try {
-                window.print();
-            } catch (e) {}
-
-            // 同時產生文字明細自動複製到剪貼簿，方便在桌面 App 內直接貼上
-            let boxMap = {};
-            entries.forEach((item, idx) => {
-                if (!boxMap[item.box]) boxMap[item.box] = [];
-                boxMap[item.box].push({ ...item, globalIndex: idx });
-            });
-
-            const boxNames = ["第一箱", "第二箱", "第三箱", "第四箱", "第五箱", "第六箱", "第七箱", "第八箱", "第九箱", "第十箱", "第十一箱", "第十二箱"];
-            let reportText = "【產銷對帳單】\n公式：毛重-桶重*0.95\n--------------------\n";
-
-            let boxKeys = Object.keys(boxMap).map(Number).sort((a, b) => a - b);
-            boxKeys.forEach(boxNum => {
-                let boxItems = boxMap[boxNum];
-                let boxTitle = boxNames[boxNum] || `第 ${boxNum + 1} 箱`;
-                let boxGross = 0;
-                reportText += `📦 ${boxTitle}：\n`;
-                boxItems.forEach(item => {
-                    boxGross += item.weight;
-                    reportText += `  - 第 ${item.globalIndex + 1} 桶：${item.weight} 斤\n`;
-                });
-                reportText += `  👉 本箱毛重總計：${formatNum(boxGross)} 斤\n\n`;
-            });
-
-            let totalGross = document.getElementById('totalGross').textContent;
-            let finalWeight = document.getElementById('finalWeight').textContent;
-            let totalPrice = document.getElementById('totalPrice').textContent;
-
-            reportText += `--------------------\n`;
-            reportText += `總桶數：${entries.length} 桶\n`;
-            reportText += `總毛重：${totalGross} 斤\n`;
-            reportText += `最終實算總台斤：${finalWeight} 斤\n`;
-            reportText += `預估總金額：NT$ ${totalPrice}\n`;
-
-            navigator.clipboard.writeText(reportText).then(() => {
-                alert('已成功將完整對帳單文字複製到剪貼簿！\n\n因為 iOS 桌面 App 限制無法直接列印，您可以直接到「備忘錄」或 LINE 點擊貼上，即可檢視與傳送對帳單數據！');
-            }).catch(err => {
-                console.log('複製失敗', err);
-            });
+            window.print();
         }
     </script>
 </body>
