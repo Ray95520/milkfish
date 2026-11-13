@@ -43,11 +43,32 @@
             background: rgba(148, 163, 184, 0.3);
             border-radius: 4px;
         }
+
+        /* A4 專屬列印排版樣式 */
+        @media print {
+            body {
+                background: #ffffff !important;
+                color: #000000 !important;
+            }
+            .no-print {
+                display: none !important;
+            }
+            .print-only {
+                display: block !important;
+            }
+            @page {
+                size: A4;
+                margin: 10mm;
+            }
+        }
+        .print-only {
+            display: none;
+        }
     </style>
 </head>
 <body class="min-h-screen py-4 px-3 sm:px-6">
 
-    <div class="max-w-md mx-auto space-y-3.5">
+    <div class="max-w-md mx-auto space-y-3.5 no-print">
         
         <!-- 頂部品牌標題列 -->
         <div class="glass-card rounded-2xl px-4 py-3.5 flex items-center justify-between">
@@ -124,7 +145,7 @@
         <!-- 最終實算總台斤 -->
         <div class="glass-card rounded-2xl p-4 bg-gradient-to-r from-emerald-950/50 to-teal-950/50 border-emerald-500/30 text-white shadow-md flex items-center justify-between">
             <div>
-                <div class="text-emerald-300 text-sm font-bold tracking-wide">最終實算總台斤 (淨重 × 0.95)</div>
+                <div class="text-emerald-300 text-sm font-bold tracking-wide">最終實算總台斤</div>
             </div>
             <div class="text-3xl font-black tracking-tight tabular-nums text-white">
                 <span id="finalWeight">0</span> <span class="text-sm font-medium text-emerald-300 ml-0.5">斤</span>
@@ -149,23 +170,64 @@
             </div>
         </div>
 
-        <!-- 裝卸箱明細列表（支援手動換箱） -->
-        <div class="glass-card rounded-2xl p-3.5">
-            <div class="flex justify-between items-center mb-2.5 px-1">
-                <h3 class="text-xs font-bold text-slate-300 tracking-wider">裝卸箱明細（可手動換箱）</h3>
+        <!-- 裝卸箱明細列表與匯出按鈕 -->
+        <div class="glass-card rounded-2xl p-3.5 space-y-3">
+            <div class="flex justify-between items-center px-1">
+                <h3 class="text-xs font-bold text-slate-300 tracking-wider">裝卸箱明細</h3>
                 <span class="text-[11px] text-slate-400">點擊數字可修改/刪除</span>
             </div>
-            <div id="columnListContainer" class="space-y-3 max-h-96 overflow-y-auto pr-1">
+            <div id="columnListContainer" class="space-y-3 max-h-72 overflow-y-auto pr-1">
                 <div class="p-4 text-center text-xs text-slate-500 glass-panel rounded-xl">尚未輸入資料，請在上方輸入第一桶毛重</div>
             </div>
+            <!-- 匯出製作對帳單按鈕 -->
+            <button onclick="openPrintPreview()" class="w-full py-3 bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-white font-bold text-sm rounded-xl shadow-lg shadow-cyan-500/20 transition flex items-center justify-center gap-2">
+                <span>🖨️</span> 匯出製作對帳單 (A4 格式)
+            </button>
         </div>
 
     </div>
 
+    <!-- =================== A4 專屬磅秤單對帳列印區 (上限12箱：上6下6) =================== -->
+    <div id="printArea" class="print-only bg-white text-black p-4 max-w-[210mm] mx-auto text-xs">
+        <div class="text-center border-b-2 border-black pb-2 mb-3">
+            <h1 class="text-lg font-black tracking-wider">仲新水產 磅秤明細對帳單</h1>
+            <p class="text-[11px] mt-1 font-bold">公式：毛重-桶重*0.95</p>
+        </div>
+
+        <!-- A4 上方 6 箱表格 -->
+        <div class="mb-3">
+            <div id="printGridTop" class="grid grid-cols-6 gap-1 border-2 border-black p-1 bg-white">
+                <!-- 動態生成上方 6 箱 -->
+            </div>
+        </div>
+
+        <!-- A4 下方 6 箱表格 -->
+        <div class="mb-3">
+            <div id="printGridBottom" class="grid grid-cols-6 gap-1 border-2 border-black p-1 bg-white">
+                <!-- 動態生成下方 6 箱 -->
+            </div>
+        </div>
+
+        <!-- 底部空白保留區與結算 -->
+        <div class="border-2 border-black p-3 space-y-2 mt-4">
+            <div class="flex justify-between font-bold text-sm border-b border-black pb-1">
+                <span>總桶數：<span id="pTotalBuckets">0</span> 桶</span>
+                <span>總毛重：<span id="pTotalGross">0</span> 斤</span>
+                <span>最終實算總台斤 (毛重-桶重*0.95)：<span id="pFinalWeight" class="text-base underline">0</span> 斤</span>
+            </div>
+            <div class="flex justify-between font-bold text-sm pt-1">
+                <span>每台斤單價：NT$ <span id="pUnitPrice">0</span></span>
+                <span class="text-base">預估總金額：NT$ <span id="pTotalPrice">0</span></span>
+            </div>
+            <div class="h-16 border border-dashed border-gray-400 mt-2 flex items-center justify-center text-gray-400 text-[11px]">
+                （下方空白備註與簽名處）
+            </div>
+        </div>
+    </div>
+
     <script>
-        // 每一筆資料記錄物件：{ weight: 數字, boxIndex: 箱子編號(從 0 開始) }
         let entries = [];
-        let currentBox = 0; // 當前正在裝的箱子編號
+        let currentBox = 0; 
         const BUCKET_TARE = 10; 
 
         window.onload = function() {
@@ -181,7 +243,6 @@
             }
         }
 
-        // 點擊「換下一箱」按鈕
         function nextBox() {
             currentBox++;
             updateBoxLabel();
@@ -190,7 +251,7 @@
         }
 
         function updateBoxLabel() {
-            const boxNames = ["第一箱", "第二箱", "第三箱", "第四箱", "第五箱", "第六箱", "第七箱", "第八箱", "第九箱", "第十箱"];
+            const boxNames = ["第一箱", "第二箱", "第三箱", "第四箱", "第五箱", "第六箱", "第七箱", "第八箱", "第九箱", "第十箱", "第十一箱", "第十二箱"];
             const labelEl = document.getElementById('currentBoxLabel');
             if (labelEl) {
                 labelEl.textContent = boxNames[currentBox] || `第 ${currentBox + 1} 箱`;
@@ -215,7 +276,6 @@
                 }
             }
 
-            // 將重量與目前所屬的箱子編號一起推入陣列
             entries.push({
                 weight: val,
                 box: currentBox
@@ -303,13 +363,12 @@
             if (fwEl) fwEl.textContent = finalWeight;
             if (tpEl) tpEl.textContent = totalPrice.toLocaleString('zh-TW');
 
-            // 渲染依照箱子分組的明細
+            // 主畫面網頁明細渲染
             const container = document.getElementById('columnListContainer');
             if (container) {
                 if (count === 0) {
                     container.innerHTML = '<div class="p-4 text-center text-xs text-slate-500 glass-panel rounded-xl">尚未輸入資料，請在上方輸入第一桶毛重</div>';
                 } else {
-                    // 找出所有用到的箱子編號
                     let boxMap = {};
                     entries.forEach((item, idx) => {
                         if (!boxMap[item.box]) boxMap[item.box] = [];
@@ -317,9 +376,8 @@
                     });
 
                     let boxesHTML = '';
-                    let boxKeys = Object.keys(boxMap).map(Number).sort((a, b) => b - a); // 最新箱子在最上面
-
-                    const boxNames = ["第一箱", "第二箱", "第三箱", "第四箱", "第五箱", "第六箱", "第七箱", "第八箱", "第九箱", "第十箱"];
+                    let boxKeys = Object.keys(boxMap).map(Number).sort((a, b) => b - a);
+                    const boxNames = ["第一箱", "第二箱", "第三箱", "第四箱", "第五箱", "第六箱", "第七箱", "第八箱", "第九箱", "第十箱", "第十一箱", "第十二箱"];
 
                     boxKeys.forEach(boxNum => {
                         let boxItems = boxMap[boxNum];
@@ -358,6 +416,87 @@
                     container.innerHTML = boxesHTML;
                 }
             }
+
+            // 同步生成 A4 列印區內容 (上6下6格子排版)
+            buildPrintGrid(count, totalGross, finalWeight, unitPrice, totalPrice);
+        }
+
+        function buildPrintGrid(count, totalGross, finalWeight, unitPrice, totalPrice) {
+            document.getElementById('pTotalBuckets').textContent = count;
+            document.getElementById('pTotalGross').textContent = totalGross;
+            document.getElementById('pFinalWeight').textContent = finalWeight;
+            document.getElementById('pUnitPrice').textContent = isNaN(unitPrice) ? 0 : unitPrice;
+            document.getElementById('pTotalPrice').textContent = totalPrice.toLocaleString('zh-TW');
+
+            let boxMap = {};
+            entries.forEach((item, idx) => {
+                if (!boxMap[item.box]) boxMap[item.box] = [];
+                boxMap[item.box].push({ ...item, globalIndex: idx });
+            });
+
+            const boxNames = ["第一箱", "第二箱", "第三箱", "第四箱", "第五箱", "第六箱", "第七箱", "第八箱", "第九箱", "第十箱", "第十一箱", "第十二箱"];
+            
+            let topHTML = '';
+            let bottomHTML = '';
+
+            // 固定渲染 12 個欄位 (上 6 個，下 6 個)
+            for (let c = 0; c < 12; c++) {
+                let boxTitle = boxNames[c] || `第 ${c + 1} 箱`;
+                let boxItems = boxMap[c] || [];
+                let boxGross = 0;
+
+                let rowsHTML = '';
+                // 每個直欄固定預留 6 行格子
+                for (let r = 0; r < 6; r++) {
+                    let weightText = '';
+                    if (boxItems[r]) {
+                        let w = formatNum(boxItems[r].weight);
+                        boxGross += w;
+                        weightText = w;
+                    }
+                    rowsHTML += `
+                        <tr class="border-b border-black text-center h-6">
+                            <td class="border-r border-black w-1/3 text-[10px] text-gray-600">${weightText ? (r + 1) : ''}</td>
+                            <td class="w-2/3 font-bold text-xs">${weightText}</td>
+                        </tr>
+                    `;
+                }
+                boxGross = formatNum(boxGross);
+
+                let columnHTML = `
+                    <div class="border border-black flex flex-col bg-white">
+                        <div class="bg-gray-200 text-center font-bold border-b border-black py-0.5 text-[11px]">
+                            ${boxTitle}
+                        </div>
+                        <table class="w-full border-collapse">
+                            <tbody>
+                                ${rowsHTML}
+                            </tbody>
+                        </table>
+                        <div class="bg-gray-100 border-t border-black text-center py-0.5 text-[10px] font-bold">
+                            毛重:${boxGross > 0 ? boxGross : ''}
+                        </div>
+                    </div>
+                `;
+
+                if (c < 6) {
+                    topHTML += columnHTML;
+                } else {
+                    bottomHTML += columnHTML;
+                }
+            }
+
+            document.getElementById('printGridTop').innerHTML = topHTML;
+            document.getElementById('printGridBottom').innerHTML = bottomHTML;
+        }
+
+        function openPrintPreview() {
+            if (entries.length === 0) {
+                alert('目前沒有任何秤重資料，請先輸入至少一桶！');
+                return;
+            }
+            updateUI();
+            window.print();
         }
     </script>
 </body>
