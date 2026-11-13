@@ -66,17 +66,22 @@
             </button>
         </div>
 
-        <!-- 單桶毛重輸入區 -->
-        <div class="glass-card rounded-2xl p-4">
-            <div class="flex justify-between items-center mb-2">
+        <!-- 單桶毛重輸入區與換箱按鈕 -->
+        <div class="glass-card rounded-2xl p-4 space-y-3">
+            <div class="flex justify-between items-center">
                 <label for="weightInput" class="text-sm font-bold text-slate-200 flex items-center gap-1.5">
                     <span>第</span>
                     <span id="nextBucketNum" class="inline-flex items-center justify-center px-2 py-0.5 text-base font-black text-cyan-300 bg-cyan-500/15 border border-cyan-400/30 rounded-lg">1</span>
                     <span>桶毛重（台斤）</span>
                 </label>
-                <span class="text-[11px] text-cyan-300 bg-cyan-950/60 border border-cyan-500/20 px-2 py-0.5 rounded-md font-medium">
-                    每桶扣10斤 ｜ 淨重總計×0.95[span_1](start_span)[span_1](end_span)
-                </span>
+                <div class="flex items-center gap-2">
+                    <span class="text-[11px] text-cyan-300 bg-cyan-950/60 border border-cyan-500/20 px-2 py-0.5 rounded-md font-medium">
+                        目前：<strong id="currentBoxLabel" class="text-white">第一箱</strong>
+                    </span>
+                    <button onclick="nextBox()" class="text-[11px] font-bold text-amber-300 bg-amber-500/20 hover:bg-amber-500/30 border border-amber-400/40 px-2.5 py-1 rounded-lg transition">
+                        換下一箱 ➔
+                    </button>
+                </div>
             </div>
             <div class="flex items-stretch gap-2.5 w-full">
                 <input type="number" id="weightInput" inputmode="decimal" step="0.1" min="0" placeholder="輸入台斤數..." 
@@ -119,8 +124,7 @@
         <!-- 最終實算總台斤 -->
         <div class="glass-card rounded-2xl p-4 bg-gradient-to-r from-emerald-950/50 to-teal-950/50 border-emerald-500/30 text-white shadow-md flex items-center justify-between">
             <div>
-                <div class="text-emerald-300 text-sm font-bold tracking-wide">最終實算總台斤 (淨重 × 0.95)[span_2](start_span)[span_2](end_span)</div>
-                <div class="text-[11px] text-emerald-300/70 mt-0.5">魚販實務公式計算</div>
+                <div class="text-emerald-300 text-sm font-bold tracking-wide">最終實算總台斤 (淨重 × 0.95)</div>
             </div>
             <div class="text-3xl font-black tracking-tight tabular-nums text-white">
                 <span id="finalWeight">0</span> <span class="text-sm font-medium text-emerald-300 ml-0.5">斤</span>
@@ -145,13 +149,12 @@
             </div>
         </div>
 
-        <!-- 車上裝卸箱（直欄分組）明細列表 -->
+        <!-- 裝卸箱明細列表（支援手動換箱） -->
         <div class="glass-card rounded-2xl p-3.5">
             <div class="flex justify-between items-center mb-2.5 px-1">
-                <h3 class="text-xs font-bold text-slate-300 tracking-wider">車上裝卸箱明細（每6桶一欄/箱）</h3>
+                <h3 class="text-xs font-bold text-slate-300 tracking-wider">裝卸箱明細（可手動換箱）</h3>
                 <span class="text-[11px] text-slate-400">點擊數字可修改/刪除</span>
             </div>
-            <!-- 容器：每 6 桶一欄的分組卡片顯示 -->
             <div id="columnListContainer" class="space-y-3 max-h-96 overflow-y-auto pr-1">
                 <div class="p-4 text-center text-xs text-slate-500 glass-panel rounded-xl">尚未輸入資料，請在上方輸入第一桶毛重</div>
             </div>
@@ -160,19 +163,37 @@
     </div>
 
     <script>
-        let buckets = [];
+        // 每一筆資料記錄物件：{ weight: 數字, boxIndex: 箱子編號(從 0 開始) }
+        let entries = [];
+        let currentBox = 0; // 當前正在裝的箱子編號
         const BUCKET_TARE = 10; 
-        const BUCKETS_PER_COLUMN = 6; // 每欄/箱 6 桶
 
         window.onload = function() {
             const input = document.getElementById('weightInput');
             if (input) input.focus();
+            updateBoxLabel();
         };
 
         function handleKeyPress(event) {
             if (event.key === 'Enter') {
                 event.preventDefault();
                 addBucket();
+            }
+        }
+
+        // 點擊「換下一箱」按鈕
+        function nextBox() {
+            currentBox++;
+            updateBoxLabel();
+            const input = document.getElementById('weightInput');
+            if (input) input.focus();
+        }
+
+        function updateBoxLabel() {
+            const boxNames = ["第一箱", "第二箱", "第三箱", "第四箱", "第五箱", "第六箱", "第七箱", "第八箱", "第九箱", "第十箱"];
+            const labelEl = document.getElementById('currentBoxLabel');
+            if (labelEl) {
+                labelEl.textContent = boxNames[currentBox] || `第 ${currentBox + 1} 箱`;
             }
         }
 
@@ -194,38 +215,45 @@
                 }
             }
 
-            buckets.push(val);
+            // 將重量與目前所屬的箱子編號一起推入陣列
+            entries.push({
+                weight: val,
+                box: currentBox
+            });
+
             input.value = '';
             input.focus();
             updateUI();
         }
 
-        function editBucket(globalIndex) {
-            const currentVal = buckets[globalIndex];
-            const newValStr = prompt(`修改第 ${globalIndex + 1} 桶的毛重（台斤）：`, currentVal);
+        function editBucket(index) {
+            const currentVal = entries[index].weight;
+            const newValStr = prompt(`修改第 ${index + 1} 桶的毛重（台斤）：`, currentVal);
             if (newValStr === null) return;
             const newVal = parseFloat(newValStr);
             if (isNaN(newVal) || newVal <= 0) {
                 alert('請輸入有效的數字！');
                 return;
             }
-            buckets[globalIndex] = newVal;
+            entries[index].weight = newVal;
             updateUI();
         }
 
-        function deleteBucket(globalIndex) {
-            if (confirm(`確定要刪除第 ${globalIndex + 1} 桶（${buckets[globalIndex]} 斤）的紀錄嗎？`)) {
-                buckets.splice(globalIndex, 1);
+        function deleteBucket(index) {
+            if (confirm(`確定要刪除第 ${index + 1} 桶（${entries[index].weight} 斤）的紀錄嗎？`)) {
+                entries.splice(index, 1);
                 updateUI();
             }
         }
 
         function resetAll() {
-            if (buckets.length === 0 && !document.getElementById('priceInput').value) return;
+            if (entries.length === 0 && !document.getElementById('priceInput').value) return;
             if (confirm('確定要清空所有紀錄與單價重新計算嗎？')) {
-                buckets = [];
+                entries = [];
+                currentBox = 0;
                 document.getElementById('priceInput').value = '';
                 document.getElementById('weightInput').value = '';
+                updateBoxLabel();
                 updateUI();
                 document.getElementById('weightInput').focus();
             }
@@ -236,7 +264,7 @@
         }
 
         function updateUI() {
-            const count = buckets.length;
+            const count = entries.length;
             const nextNumEl = document.getElementById('nextBucketNum');
             const totalBucketsEl = document.getElementById('totalBuckets');
             if (nextNumEl) nextNumEl.textContent = count + 1;
@@ -245,15 +273,14 @@
             let totalGross = 0;
             let netAfterBucket = 0;
 
-            buckets.forEach(w => {
-                totalGross += w;
-                netAfterBucket += (w - BUCKET_TARE);
+            entries.forEach(item => {
+                totalGross += item.weight;
+                netAfterBucket += (item.weight - BUCKET_TARE);
             });
 
             totalGross = formatNum(totalGross);
             netAfterBucket = formatNum(netAfterBucket);
 
-            // 魚販實務公式：淨重總計直接乘以 0.95 (相當於扣除 5% 水重)[span_3](start_span)[span_3](end_span)
             const finalWeight = formatNum(netAfterBucket * 0.95);
             const waterDeduction = formatNum(netAfterBucket - finalWeight);
 
@@ -276,51 +303,59 @@
             if (fwEl) fwEl.textContent = finalWeight;
             if (tpEl) tpEl.textContent = totalPrice.toLocaleString('zh-TW');
 
-            // 渲染直欄/箱子分組明細
+            // 渲染依照箱子分組的明細
             const container = document.getElementById('columnListContainer');
             if (container) {
                 if (count === 0) {
                     container.innerHTML = '<div class="p-4 text-center text-xs text-slate-500 glass-panel rounded-xl">尚未輸入資料，請在上方輸入第一桶毛重</div>';
                 } else {
-                    let columnsHTML = '';
-                    let totalColumns = Math.ceil(count / BUCKETS_PER_COLUMN);
+                    // 找出所有用到的箱子編號
+                    let boxMap = {};
+                    entries.forEach((item, idx) => {
+                        if (!boxMap[item.box]) boxMap[item.box] = [];
+                        boxMap[item.box].push({ ...item, globalIndex: idx });
+                    });
 
-                    // 為了讓最新輸入的箱子/直欄顯示在最上面，我們從最後一箱開始排到第一箱
-                    for (let c = totalColumns - 1; c >= 0; c--) {
-                        let startIndex = c * BUCKETS_PER_COLUMN;
-                        let endIndex = Math.min(startIndex + BUCKETS_PER_COLUMN, count);
-                        let colGross = 0;
+                    let boxesHTML = '';
+                    let boxKeys = Object.keys(boxMap).map(Number).sort((a, b) => b - a); // 最新箱子在最上面
 
+                    const boxNames = ["第一箱", "第二箱", "第三箱", "第四箱", "第五箱", "第六箱", "第七箱", "第八箱", "第九箱", "第十箱"];
+
+                    boxKeys.forEach(boxNum => {
+                        let boxItems = boxMap[boxNum];
+                        let boxGross = 0;
                         let itemsHTML = '';
-                        for (let i = startIndex; i < endIndex; i++) {
-                            let w = formatNum(buckets[i]);
-                            colGross += w;
+
+                        boxItems.forEach((item) => {
+                            let w = formatNum(item.weight);
+                            boxGross += w;
                             itemsHTML += `
                                 <div class="flex items-center justify-between py-1 px-2 rounded-lg bg-slate-900/40 border border-white/5 text-xs">
-                                    <span class="text-slate-400 font-medium">第 ${i + 1} 桶</span>
+                                    <span class="text-slate-400 font-medium">第 ${item.globalIndex + 1} 桶</span>
                                     <span class="font-bold text-white tabular-nums">${w} 斤</span>
                                     <div class="space-x-1">
-                                        <button onclick="editBucket(${i})" class="text-cyan-300 hover:text-cyan-200 px-1.5 py-0.5 rounded bg-cyan-500/15 border border-cyan-400/20 text-[11px]">改</button>
-                                        <button onclick="deleteBucket(${i})" class="text-rose-300 hover:text-rose-200 px-1.5 py-0.5 rounded bg-rose-500/15 border border-rose-400/20 text-[11px]">刪</button>
+                                        <button onclick="editBucket(${item.globalIndex})" class="text-cyan-300 hover:text-cyan-200 px-1.5 py-0.5 rounded bg-cyan-500/15 border border-cyan-400/20 text-[11px]">改</button>
+                                        <button onclick="deleteBucket(${item.globalIndex})" class="text-rose-300 hover:text-rose-200 px-1.5 py-0.5 rounded bg-rose-500/15 border border-rose-400/20 text-[11px]">刪</button>
                                     </div>
                                 </div>
                             `;
-                        }
-                        colGross = formatNum(colGross);
+                        });
+                        boxGross = formatNum(boxGross);
+                        let boxTitle = boxNames[boxNum] || `第 ${boxNum + 1} 箱`;
 
-                        columnsHTML += `
+                        boxesHTML += `
                             <div class="glass-panel rounded-xl p-3 space-y-2 border border-slate-700/60">
                                 <div class="flex justify-between items-center pb-1.5 border-b border-white/10">
-                                    <span class="text-xs font-bold text-cyan-300">📦 車上第 ${c + 1} 箱（直欄）</span>
-                                    <span class="text-xs font-extrabold text-amber-300 tabular-nums">本箱毛重總計：${colGross} 斤</span>
+                                    <span class="text-xs font-bold text-cyan-300">📦 ${boxTitle}</span>
+                                    <span class="text-xs font-extrabold text-amber-300 tabular-nums">本箱毛重總計：${boxGross} 斤</span>
                                 </div>
                                 <div class="grid grid-cols-1 gap-1.5">
                                     ${itemsHTML}
                                 </div>
                             </div>
                         `;
-                    }
-                    container.innerHTML = columnsHTML;
+                    });
+                    container.innerHTML = boxesHTML;
                 }
             }
         }
