@@ -493,8 +493,18 @@
                 return;
             }
             updateUI();
+
+            // 智慧自動偵測：如果是從手機桌面獨立 App 打開，自動跳轉到 Safari 瀏覽器預覽
+            const isInStandaloneMode = window.navigator.standalone || window.matchMedia('(display-mode: standalone)').matches;
+            if (isInStandaloneMode) {
+                alert('即將為您跳轉至 Safari 瀏覽器開啟 A4 對帳單預覽畫面...');
+                window.location.href = window.location.href;
+                return;
+            }
+
             window.print();
         }
     </script>
 </body>
 </html>
+
